@@ -23,6 +23,7 @@ const INTERESTS = [
 
 const REQUIRED = ['firstName', 'lastName', 'email', 'subject', 'message']
 
+// ─── Main Component ───────────────────────────────────────────
 export default function ContactPage() {
 
   const [form, setForm] = useState({
@@ -39,30 +40,28 @@ export default function ContactPage() {
 
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState(false)
-  const [status, setStatus] = useState('idle')
+  const [status, setStatus] = useState('idle') // 'idle' | 'loading' | 'success'
   const [progress, setProgress] = useState(0)
 
-  // ✅ Progress
+  // ─── Update progress
   useEffect(() => {
     const filled = REQUIRED.filter(key => String(form[key]).trim().length > 0).length
     setProgress(Math.round((filled / REQUIRED.length) * 100))
   }, [form])
 
-  // ✅ Revalidate
+  // ─── Revalidate on change
   useEffect(() => {
     if (touched) validateAll()
   }, [form, touched])
 
-  // ✅ Auto focus
+  // ─── Focus first input
   useEffect(() => {
     document.querySelector('input[name="firstName"]')?.focus()
   }, [])
 
-  // ─── Handlers ───────────────────────────────────────────────
-
+  // ─── Handlers
   function handleChange(e) {
     const { name, value, type, checked } = e.target
-
     if (type === 'checkbox' && name === 'agree') {
       setForm(prev => ({ ...prev, agree: checked }))
     } else if (name === 'email') {
@@ -140,10 +139,9 @@ export default function ContactPage() {
     setStatus('idle')
   }
 
-  // ─── Render ──────────────────────────────────────────────────
+  // ─── Render
   return (
     <div className={styles.page}>
-
       <aside className={styles.sidebar}>
         <Link href="/" className={styles.backLink}>← Back</Link>
         <div className={styles.sideContent}>
@@ -167,40 +165,72 @@ export default function ContactPage() {
 
             <form onSubmit={handleSubmit} noValidate className={styles.form}>
 
+              {/* Name */}
               <div className={styles.row2}>
-                <Field label="First name" name="firstName" required value={form.firstName} onChange={handleChange} error={errors.firstName} />
-                <Field label="Last name" name="lastName" required value={form.lastName} onChange={handleChange} error={errors.lastName} />
+                <Field label="First name" name="firstName" value={form.firstName} onChange={handleChange} error={errors.firstName} required />
+                <Field label="Last name"  name="lastName"  value={form.lastName}  onChange={handleChange} error={errors.lastName} required />
               </div>
 
+              {/* Email & Phone */}
               <div className={styles.row2}>
-                <Field label="Email" name="email" value={form.email} onChange={handleChange} error={errors.email} />
+                <Field label="Email" name="email" value={form.email} onChange={handleChange} error={errors.email} required />
                 <Field label="Phone" name="phone" value={form.phone} onChange={handleChange} />
               </div>
 
-              <textarea
-                name="message"
-                value={form.message}
-                onChange={handleChange}
-                className={`${styles.textarea} ${errors.message ? styles.inputErr : ''}`}
-              />
-
-              {/* ✅ Character warning */}
-              {form.message.length > 450 && (
-                <p style={{ color: 'orange' }}>Almost reached max limit!</p>
-              )}
-
-              {/* ✅ Live Preview */}
-              <div style={{ padding: '10px', border: '1px solid #ddd', marginTop: '10px' }}>
-                <p><strong>Name:</strong> {form.firstName} {form.lastName}</p>
-                <p><strong>Email:</strong> {form.email}</p>
+              {/* Subject */}
+              <div className={styles.field}>
+                <label>Subject *</label>
+                <select name="subject" value={form.subject} onChange={handleChange} className={errors.subject ? styles.inputErr : ''}>
+                  <option value="">Select a subject</option>
+                  {SUBJECTS.map(s => <option key={s}>{s}</option>)}
+                </select>
+                {errors.subject && <p className={styles.errMsg}>{errors.subject}</p>}
               </div>
 
-              <button
-                type="submit"
-                disabled={status === 'loading' || progress < 100 || !form.agree}
-                className={styles.submitBtn}
-              >
-                {status === 'loading' ? 'Sending...' : 'Send message'}
+              {/* Priority */}
+              <div className={styles.field}>
+                <label>Priority</label>
+                <div className={styles.radioGroup}>
+                  {['low','normal','high','urgent'].map(p => (
+                    <label key={p} className={form.priority===p ? styles.radioActive : ''}>
+                      <input type="radio" name="priority" value={p} checked={form.priority===p} onChange={handleChange}/>
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Interests */}
+              <div className={styles.field}>
+                <label>Interests</label>
+                <div className={styles.checkGrid}>
+                  {INTERESTS.map(i => (
+                    <label key={i.id} className={form.interests.includes(i.id) ? styles.checkActive : ''}>
+                      <input type="checkbox" checked={form.interests.includes(i.id)} onChange={()=>handleInterest(i.id)} />
+                      {i.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message */}
+              <div className={styles.field}>
+                <label>Message *</label>
+                <textarea name="message" value={form.message} onChange={handleChange} rows={5} maxLength={500} className={errors.message ? styles.inputErr : ''} />
+                <span>{form.message.length}/500</span>
+                {errors.message && <p className={styles.errMsg}>{errors.message}</p>}
+              </div>
+
+              {/* Agree */}
+              <div className={styles.field}>
+                <label className={errors.agree ? styles.inputErr : ''}>
+                  <input type="checkbox" name="agree" checked={form.agree} onChange={handleChange} />
+                  I agree to the privacy policy
+                </label>
+              </div>
+
+              <button type="submit" disabled={status==='loading'} className={styles.submitBtn}>
+                {status==='loading' ? 'Sending...' : 'Send message'}
               </button>
 
             </form>
@@ -211,29 +241,23 @@ export default function ContactPage() {
   )
 }
 
-// ─── Components ───────────────────────────────────────────────
-
-function Field({ label, name, value, onChange, error }) {
+// ─── Sub-components ───────────────────────────────────────────
+function Field({ label, name, value, onChange, error, required }) {
   return (
-    <div>
-      <label>{label}</label>
-      <input
-        name={name}
-        value={value}
-        onChange={onChange}
-        className={error ? 'error' : ''}
-      />
-      {error && <p>{error}</p>}
+    <div className={styles.field}>
+      <label>{label}{required && '*'}</label>
+      <input name={name} value={value} onChange={onChange} className={error ? styles.inputErr : ''} />
+      {error && <p className={styles.errMsg}>{error}</p>}
     </div>
   )
 }
 
 function SuccessScreen({ form, onReset }) {
   return (
-    <div>
-      <h2>Success!</h2>
-      <p>{form.firstName}, your message is sent.</p>
-      <button onClick={onReset}>Reset</button>
+    <div className={styles.success}>
+      <h2>Message sent successfully!</h2>
+      <p>Thanks {form.firstName}, we will contact you at {form.email} soon.</p>
+      <button onClick={onReset}>Send another message</button>
     </div>
   )
 }
