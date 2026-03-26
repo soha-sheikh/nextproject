@@ -41,6 +41,7 @@ export default function HomePage() {
         {/* Optional: Add a small note */}
         <p className={`${styles.note} anim-fade-5`}>
           Built with Next.js 13+, React hooks, and modern CSS.
+            welcome to the website.
         </p>
       </div>
     </main>
